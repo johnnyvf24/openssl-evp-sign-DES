@@ -10,3 +10,7 @@ EncryptAndSign.txt
 EncAndSign
 .codelite
 output.txt
+.c~
+*~
+hash
+signature

@@ -99,10 +99,8 @@ int main(int argc, char **argv)
 		write_file((userOutKeyFile) ? outputSessionKeyFile:"sessionKey.key", decrypted, 8);
 		
 		//placeholders for the key and iv to be used for DES.
-		unsigned char key [9];
-		unsigned char iv [9];
-		key[8] = '\0';
-		iv[8] = '\0';
+		unsigned char key [8];
+		unsigned char iv [8];
 		
 		derive_key_and_iv(decrypted, key, iv);
 		
@@ -112,7 +110,7 @@ int main(int argc, char **argv)
 			printf("\nwriting ciphertext to %s\n", (userOutFile) ? outputFile:"output.txt");
 		}
 		
-		des_encrypt(plaintext, (userOutFile) ? outputFile:"output.txt" , privKeyFile, iv);
+		des_encrypt(plaintextFile, (userOutFile) ? outputFile:"output.txt" , key, iv);
 		
 		
 		/*-----------------------HASH AND SIGN THE CIPHERTEXT-----------------*/
