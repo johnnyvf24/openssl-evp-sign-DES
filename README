@@ -1,0 +1,1 @@
+./EncAndSign -p plaintext -pubk public.key -sk encrypted.key -privk private_key.pem -d

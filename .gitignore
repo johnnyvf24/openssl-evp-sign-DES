@@ -1,0 +1,12 @@
+*.exe
+*.mk
+*.pem
+*.key
+Debug/*
+*.project
+EncryptAndSign.txt
+*.workspace
+*.out
+EncAndSign
+.codelite
+output.txt
