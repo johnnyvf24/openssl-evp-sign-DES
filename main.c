@@ -13,9 +13,10 @@ int debug = 0;
 
 int main(int argc, char **argv)
 {
-	int userOutKeyFile = 0, userOutFile = 0;
+	int userOutKeyFile = 0, userOutFile = 0, sigOutFile = 0;
     //parse commandline arguments
-    char * plaintextFile, * pKeyFile, * sessionKeyFile, * privKeyFile, * outputSessionKeyFile, * outputFile;
+    char * plaintextFile, * pKeyFile, * sessionKeyFile, * privKeyFile, * outputSessionKeyFile, * outputFile, 
+		* sigOutputFile;
     int i;
     if(argc > 8) {
         for(i = 1; i < argc; i++) {
@@ -51,12 +52,19 @@ int main(int argc, char **argv)
 				outputSessionKeyFile = argv[i];
 				userOutKeyFile = 1;
 			}
-			//OPTIONAL: the name of the file to store the ciphertext and the signature
-			//DEFAULT: output.txt
+			//OPTIONAL: the name of the file to store the ciphertext
+			//DEFAULT: output.bin
 			else if(strcmp(arg, "-out") == 0) {
 				i++;
 				outputFile = argv[i];
 				userOutFile = 1;
+			}
+			//OPTIONAL: the name of the signature file
+			//DEFAULT: signature
+			else if(strcmp(arg, "-sigout") == 0) {
+				i++;
+				sigOutputFile = argv[i];
+				sigOutFile = 1;
 			}
 			else {
                 //PRINT OUT Help message
@@ -66,13 +74,13 @@ int main(int argc, char **argv)
         /*------------------------READ ALL THE FILES --------------------------*/
         char * plaintext, * pubKeyContent, * sessionKeyContent;
         //store the content of all the files
-        plaintext = read_file(plaintextFile);
-        pubKeyContent = read_file(pKeyFile);
-        sessionKeyContent = read_file(sessionKeyFile);
+        plaintext = read_file(plaintextFile, NULL);
+        pubKeyContent = read_file(pKeyFile, NULL);
+        sessionKeyContent = read_file(sessionKeyFile, NULL);
 		
 		if(debug) {
 			printf("\n\nplaintext:\n%s\n", plaintext);
-			printf("\nThe size of the plaintext is %d bytes\n", strlen(plaintext));
+			printf("\nThe size of the plaintext is %d bytes\n", (int)strlen(plaintext));
 			printf("\nthird party public key:\n%s\n", pubKeyContent);
 		}
 		
@@ -99,29 +107,34 @@ int main(int argc, char **argv)
 		write_file((userOutKeyFile) ? outputSessionKeyFile:"sessionKey.key", decrypted, 8);
 		
 		//placeholders for the key and iv to be used for DES.
-		unsigned char key [8];
-		unsigned char iv [8];
+		unsigned char key [9];
+		unsigned char iv [9];
+		key[8] = '\0';
+		iv[8] = '\0';
 		
 		derive_key_and_iv(decrypted, key, iv);
 		
 		
 		/*-----------------------ENCRYPT USING DES ---------------------------*/
 		if(debug) {
-			printf("\nwriting ciphertext to %s\n", (userOutFile) ? outputFile:"output.txt");
+			printf("\nwriting ciphertext to %s\n", (userOutFile) ? outputFile:"output.bin");
 		}
 		
-		des_encrypt(plaintextFile, (userOutFile) ? outputFile:"output.txt" , key, iv);
+		des_encrypt(plaintext, (userOutFile) ? outputFile:"output.bin" , key, iv);
 		
 		
 		/*-----------------------HASH AND SIGN THE CIPHERTEXT-----------------*/
-		unsigned char * dataToSign = read_file((userOutFile) ? outputFile:"output.txt");
+		
+		unsigned int dataLength;
+		unsigned char * dataToSign = read_file((userOutFile) ? outputFile:"output.bin", &dataLength);
 		if(debug) {
 			printf("\nThe ciphertext is:\n");
 			print_array_hex(strlen(dataToSign), dataToSign);
-			printf("\n");
+			printf("The size of the ciphertext is: %d\n", dataLength);
 		}
 		
-		hash_and_sign_data(dataToSign, "signature", privKeyFile);
+		//The final part
+		hash_and_sign_data(dataToSign, (sigOutFile) ? sigOutputFile:"signature", privKeyFile, dataLength);
 		
     } else {
         printf("TODO: write help message");

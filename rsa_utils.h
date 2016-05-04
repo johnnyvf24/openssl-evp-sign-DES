@@ -11,7 +11,7 @@
 extern int debug;
 
 RSA * initRSA(unsigned char * key,int public);
-void hash_and_sign_data(unsigned char * data, char * signatureOutputFileName, char * privKeyFileName);
+void hash_and_sign_data(unsigned char * data, char * signatureOutputFileName, char * privKeyFileName, unsigned int data_length);
 int public_decrypt(unsigned char * enc_data,int data_len, unsigned char * key, unsigned char *decrypted);
 void derive_key_and_iv(unsigned char * sessionKey, unsigned char * key, unsigned char * iv);
 

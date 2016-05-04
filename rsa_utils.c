@@ -1,5 +1,8 @@
 #include "rsa_utils.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <inttypes.h>
+#include "file_ops.h"
 
 int padding = RSA_NO_PADDING;	//Didn't know exactly how to pad, so no padding was used
 
@@ -40,67 +43,83 @@ int public_decrypt(unsigned char * enc_data, int length_of_data, unsigned char *
     return RSA_public_decrypt(length_of_data, enc_data, decrypted, rsa, padding);
 }
 
-void hash_and_sign_data(unsigned char * data, char * signatureOutputFileName, char * privKeyFileName) {
+void hash_and_sign_data(unsigned char * data, char * signatureOutputFileName, char * privKeyFileName, unsigned int data_length) {
 	OpenSSL_add_all_algorithms();
+	OpenSSL_add_all_ciphers();
+	OpenSSL_add_all_digests();
+
+	EVP_PKEY *evpKey = 0;
 	
-	//how much data are we hashing?
-	int sizeOfData= strlen(data);
+	//GET THE PRIVATE KEY
+	FILE *fp = fopen(privKeyFileName, "r");
+	PEM_read_PrivateKey(fp, &evpKey, NULL, NULL);
 	
-	if(debug) {
-		printf("We are hashing %d bytes of data\n", sizeOfData);
-	}
-	
-	unsigned char outHash [32 +1];
-	outHash[sizeOfData] = '\0';
-	
+	//HASH
+	unsigned char outHash [32];
 	unsigned int md_len = -1;
     const EVP_MD *md = EVP_get_digestbyname("SHA256");
     if(NULL != md) {
         EVP_MD_CTX mdctx;
         EVP_MD_CTX_init(&mdctx);
         EVP_DigestInit_ex(&mdctx, md, NULL);
-        EVP_DigestUpdate(&mdctx, data, sizeOfData);
+        EVP_DigestUpdate(&mdctx, data, data_length);
         EVP_DigestFinal_ex(&mdctx, outHash, &md_len);
         EVP_MD_CTX_cleanup(&mdctx);
     }
 	
 	if(debug) {
-		printf("The hash of the file is: ");
+		printf("The outputted hash is: ");
 		print_array_hex(32, outHash);
 	}
 	
 	EVP_PKEY_CTX *ctx;
 	unsigned char *sig;
 	size_t mdlen = 32, siglen;
-	EVP_PKEY *signing_key;
 	
-	FILE *fp = fopen(privKeyFileName, "r");
-	PEM_read_PrivateKey(fp, &signing_key, NULL, NULL);
-	
-	ctx = EVP_PKEY_CTX_new(signing_key, NULL /* no engine */);
-	
-	if(!ctx) printf("An error occurred while signing");
-	if (EVP_PKEY_sign_init(ctx) <= 0) printf("An error occurred while signing");
-	if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PSS_PADDING) <= 0) printf("An error occurred while signature padding");
-	if (EVP_PKEY_CTX_set_signature_md(ctx, EVP_sha256()) <= 0) printf("An error occurred while signing");
-		
-	/*Determine buffer length*/
+	ctx = EVP_PKEY_CTX_new(evpKey, NULL /* no engine */);
+	if (!ctx)
+        printf("ERROR");/* Error occurred */
+	if (EVP_PKEY_sign_init(ctx) <= 0)
+		printf("ERROR");/* Error */
+	if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING) <= 0)
+		printf("ERROR");/* Error */
+	if (EVP_PKEY_CTX_set_signature_md(ctx, EVP_sha256()) <= 0)
+		printf("ERROR");/* Error */
+
+	/* Determine buffer length */
 	if (EVP_PKEY_sign(ctx, NULL, &siglen, outHash, mdlen) <= 0)
-        printf("ERROR");
+		printf("ERROR");/* Error */
 
 	sig = OPENSSL_malloc(siglen);
 
 	if (!sig)
-		printf("ERROR");
+		printf("ERROR");/* malloc failure */
 
 	if (EVP_PKEY_sign(ctx, sig, &siglen, outHash, mdlen) <= 0)
-		printf("ERROR");
+        printf("ERROR");/* Error */
 
 	/* Signature is siglen bytes written to buffer sig */
 	if(debug) {
 		printf("The signature is: \n");
 		print_array_hex(siglen, sig);
+		printf("\n");
 	}
+	
+	if(debug) {
+		printf("\nThe size of the signature is %d\n", (int)siglen);
+	}
+	
+	EVP_PKEY_free( evpKey );
+	ERR_free_strings();
+
+	fclose(fp);
+	
+	if(debug) {
+		printf("\nWriting signature to file %s\n", signatureOutputFileName);
+	}
+	
+	//write to file
+	write_file(signatureOutputFileName, sig, 256);
 }
 
 /**

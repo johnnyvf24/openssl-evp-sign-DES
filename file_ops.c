@@ -6,7 +6,7 @@
  * @param fileName, the name of the file
  * @return the text from the file
  */
-char * read_file(char * fileName) {
+char * read_file(char * fileName, unsigned int *retLength) {
     long int size = 0;
     FILE *file = fopen(fileName, "rb");
 
@@ -17,10 +17,14 @@ char * read_file(char * fileName) {
 
     fseek(file, 0, SEEK_END);
     size = ftell(file);
+	if(retLength != NULL) {
+		*retLength = (unsigned int)size;
+	}
     rewind(file);
 
-    char * result = (char *) malloc(size+1);
-    result[size] = '\0';    //terminate with a null character
+    char * result = (char *) malloc(size +1);
+	result[size]= '\0';
+	
     if(!result) {
         fputs("Memory error.\n", stderr);
 		exit(1);

@@ -1,7 +1,10 @@
+/**
+ * DES, John F. and Travis M.
+ */
 #include <stdio.h>
 #include <stdlib.h>
-#include "des_encrypt.h"
 #include <string.h> /* memset */
+#include "des_encrypt.h"
 
 /**
  * @brief Encrypt in CBC mode.
@@ -11,83 +14,55 @@
  * @param iv
  */
 
-void des_encrypt(char * plaintextFileName, char * writeFileName, char * key, char * iv) {
+void des_encrypt(char * plaintext, char * writeFileName, char * key, char * iv) {
+	int plaintextSize = strlen(plaintext);
 
-    FILE * read_file = fopen(plaintextFileName, "r");
-    if (read_file == NULL) {
-        printf("Could not open input file to read data.");
-        exit(1);
-    }
+	//find out how many blocks we are working with
+	int numBlocks = plaintextSize/8 + ((plaintextSize % 8) ? 1:0);
+	printf("NUMBLOCKS: %d\n",numBlocks);
+	FILE * output_file = fopen(writeFileName, "w");
+	if (output_file == NULL) {
+		printf("Could not open %s to write data.", writeFileName);
+		exit(1);
+	}
+	
+	unsigned char ciphertext [8];   
+	unsigned char currentChunk [8];
+	unsigned char data_block [8];
+	int total_output_size = plaintextSize + (8-plaintextSize %8);
+	unsigned char write_out_cipher[total_output_size];
+	int i = 0;
+	
+	while(i < numBlocks){
+		memcpy(data_block, plaintext + (8*i), 8);
+		
+		//Is this the last block?
+		if(i == numBlocks-1) {
+			memset(data_block + (plaintextSize % 8), '\0' , 8 - plaintextSize %8);
+		}
+		
+		memcpy(currentChunk, data_block, 8);
+		
+		if(i == 0) {
+			xOrTwoByteArrays(currentChunk, iv, 8, 8);
+			des_encrypt_chunk(key, currentChunk, ciphertext);
+			memcpy(write_out_cipher + (i *8), ciphertext, 8);
+			//write ciphertext to output file
+			fwrite(ciphertext, 1, 8, output_file);
+		} else {
+			xOrTwoByteArrays(currentChunk, ciphertext, 8, 8);
+			des_encrypt_chunk(key, currentChunk, ciphertext);
+			memcpy(write_out_cipher + (i *8), ciphertext, 8);
+			fwrite(ciphertext, 1, 8, output_file);
+		}
+		i++;
+	}
+	
+	fclose(output_file);
 
-    unsigned long file_size;
-	unsigned long block_count = 0, number_of_blocks;
-    size_t size;
-
-    fseek(read_file,0,SEEK_END);
-    size = ftell(read_file);
-
-    //find out how many blocks we are working with
-    int numBlocks = size/8 + ((size % 8) ? 1:0);		    
-    rewind(read_file);
-
-    FILE * outputFile = fopen(writeFileName, "w");
-    if (outputFile == NULL) {
-        printf("Could not open input file to read data.");
-        exit(1);
-    }
-
-
-    unsigned char ciphertext [8];   //to place the ciphertext
-    unsigned char currentChunk [8];
-    unsigned char* data_block = (unsigned char*) malloc(8*sizeof(char));
-
-    int total_output_size = size + (8-size %8);
-    unsigned char write_out_cipher[total_output_size];
-    int i = 0;
-
-    while(fread(data_block, 1, 8, read_file)){
-
-        //if this is the last block	
-        if(i == numBlocks-1) {
-            memset(data_block + (size % 8), '\0' , 8 - size %8);
-        }
-    	
-        memcpy(currentChunk, data_block, 8);
-
-        if(i == 0) {
-            printf("plaintext is: ");
-            print_array_hex(8, currentChunk);
-            xOrTwoByteArrays(currentChunk, iv, 8, 8);
-            des_encrypt_chunk(key, currentChunk, ciphertext);
-            memcpy(write_out_cipher + (i *8), ciphertext, 8);
-            fwrite(ciphertext, 1, 8, outputFile);   //write ciphertext to output file
-            
-        } else {
-            xOrTwoByteArrays(currentChunk, ciphertext, 8, 8);
-            des_encrypt_chunk(key, currentChunk, ciphertext);
-            memcpy(write_out_cipher + (i *8), ciphertext, 8);
-            fwrite(ciphertext, 1, 8, outputFile); 
-        }
-        i++;
-    
-    }
-    fclose(read_file);
-    fclose(outputFile);
-    //write to terminal to see ciphertext
 }
 
 
-/*
-
-Travis Machacek
-John Flickinger
-
-This file contains our encrypt function and permutation functions.
-
-With this function, we encrypt the ciphertext 
-8 bytes at a time.
-
-*/
 //expands right input to 48 bits
 void expansionPermutation(unsigned char datablock[], unsigned char Kn[], unsigned char ret[]) {
     // expansion box
