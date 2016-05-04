@@ -1,1 +1,52 @@
-./EncAndSign -p plaintext -pubk public.key -sk encrypted.key -privk private_key.pem -d
+This program does the following:
+1. Decryptes a session key using a third party RSA public key.
+2. Saves the plaintext session key to file.
+3. Encryptes a provided plaintext using DES with a key and iv derived from the session key.
+4. Signs the ciphertext of the plaintext with an RSA private key.
+5. Saves the ciphertext and the signature.
+
+--------------------------------- COMPILATION ------------------------------------
+
+A makefile has been included. All it does is compile everything and include the lcrypto
+library required for the EVP openssl calls. Once 'make' has finished a new executable named
+'EncAndSign' will be created. 
+
+----------------------------------- USAGE -----------------------------------------
+To use the program the following must be provided:
+
+1. A plaintext file
+2. A PUBLIC KEY in PEM format (presumably a third party public key)
+3. A Session Key
+4. A PRIVATE KEY in PEM format
+
+Example usage:
+./EncAndSign -p plaintext -pubk public.key -sk encrypted.key -privk private_key.pem
+
+
+Let's go over the arguments:
+-p <plaintextFile>          Include a plaintext file to encrypt using DES.
+-pubk <public_key_file>     Include a public Key file in PEM format
+-sk <session_key>           A session key for symmetric encryption.
+                            (Must be 512 bytes, only first 8 bytes will be used.)
+-privk <private_key_file>   A private key file in PEM format
+
+Running the above command will output several files those files are:
+
+1. sessionKey.key    The saved plaintext sessionkey.
+2. output.bin        The ciphertext of the provided DES file.
+3. signature         A signature of the SHA256 hash of the ciphertext.
+
+---------------------------------- OPTIONAL ARGS -------------------------------------
+There are a few convenience arguments that are accepted by the program.
+
+First and foremost, if you want to see what exactly is happening at runtime, enable the 
+debug argument, '-d'.
+
+Also, incase you want to change the name of the output files here are a few extra args:
+
+-kout       Name the file where the plaintext session key will be outputted to.
+-out        Name the file where the ciphertext of the plaintext will be saved.
+-sigout     The name of the file where the signature is placed.
+
+
+
