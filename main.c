@@ -41,32 +41,32 @@ int main(int argc, char **argv)
                 i++;
                 privKeyFile = argv[i];
             } 
-			//OPTIONAL: for debugging purposes
-			else if(strcmp(arg, "-d") == 0) {
-				debug = 1;
-			} 
-			//OPTIONAL: the name of the file that will contain the plaintext key
-			//DEFAULT: sessionKey.key
-			else if(strcmp(arg, "-kout") == 0) {
-				i++;
-				outputSessionKeyFile = argv[i];
-				userOutKeyFile = 1;
-			}
-			//OPTIONAL: the name of the file to store the ciphertext
-			//DEFAULT: output.bin
-			else if(strcmp(arg, "-out") == 0) {
-				i++;
-				outputFile = argv[i];
-				userOutFile = 1;
-			}
-			//OPTIONAL: the name of the signature file
-			//DEFAULT: signature
-			else if(strcmp(arg, "-sigout") == 0) {
-				i++;
-				sigOutputFile = argv[i];
-				sigOutFile = 1;
-			}
-			else {
+	    //OPTIONAL: for debugging purposes
+	    else if(strcmp(arg, "-d") == 0) {
+		debug = 1;
+            } 
+	    //OPTIONAL: the name of the file that will contain the plaintext key
+	    //DEFAULT: sessionKey.key
+	    else if(strcmp(arg, "-kout") == 0) {
+		i++;
+		outputSessionKeyFile = argv[i];
+		userOutKeyFile = 1;
+	    }
+	    //OPTIONAL: the name of the file to store the ciphertext
+	    //DEFAULT: output.bin
+	    else if(strcmp(arg, "-out") == 0) {
+	 	i++;
+		outputFile = argv[i];
+		userOutFile = 1;
+	    }
+	    //OPTIONAL: the name of the signature file
+	    //DEFAULT: signature
+	    else if(strcmp(arg, "-sigout") == 0) {
+		i++;
+		sigOutputFile = argv[i];
+		sigOutFile = 1;
+	    }
+	    else {
                 //PRINT OUT Help message
             }
         }
@@ -107,10 +107,8 @@ int main(int argc, char **argv)
 		write_file((userOutKeyFile) ? outputSessionKeyFile:"sessionKey.key", decrypted, 8);
 		
 		//placeholders for the key and iv to be used for DES.
-		unsigned char key [9];
-		unsigned char iv [9];
-		key[8] = '\0';
-		iv[8] = '\0';
+		unsigned char key [8];
+		unsigned char iv [8];
 		
 		derive_key_and_iv(decrypted, key, iv);
 		
